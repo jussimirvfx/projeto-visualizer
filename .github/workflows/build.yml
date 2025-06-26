@@ -70,7 +70,19 @@ jobs:
         # Fix permissions after cache restore
         sudo chown -R $USER:$USER /opt/libdragon || true
         sudo chmod +x /opt/libdragon/bin/* || true
-        ls -la /opt/libdragon/bin/ || echo "Checking bin directory..."
+        
+        echo "📂 Checking libdragon structure:"
+        ls -la /opt/libdragon/ || echo "Main directory not found"
+        ls -la /opt/libdragon/include/ || echo "Include directory not found"
+        find /opt/libdragon -name "n64.mk" -type f || echo "n64.mk not found"
+        
+        # Check if n64.mk is in the libdragon repo root and needs to be copied
+        if [ -f "/opt/libdragon/n64.mk" ] && [ ! -f "/opt/libdragon/include/n64.mk" ]; then
+          echo "🔧 Fixing n64.mk location..."
+          sudo mkdir -p /opt/libdragon/include
+          sudo cp /opt/libdragon/n64.mk /opt/libdragon/include/n64.mk
+          echo "✅ n64.mk copied to include directory"
+        fi
     
     # Cache converted audio data (no need to convert every time!)
     - name: Cache audio conversion
@@ -110,12 +122,33 @@ jobs:
         echo "🔍 Build environment:"
         echo "PATH=$PATH"
         echo "N64_INST=$N64_INST"
-        echo "Available tools:"
-        ls -la /opt/libdragon/bin/ | head -5
+        echo "PWD=$(pwd)"
+        
+        echo "🔍 Checking critical files:"
+        echo "n64.mk exists: $(test -f /opt/libdragon/include/n64.mk && echo 'YES' || echo 'NO')"
+        echo "Makefile exists: $(test -f Makefile && echo 'YES' || echo 'NO')"
+        
+        echo "📁 Build directory structure:"
+        ls -la src/ || echo "src directory not found"
+        
+        echo "🛠️ Available MIPS tools:"
+        ls -la /opt/libdragon/bin/ | grep mips64-elf | head -3
+        
+        # Verify n64.mk is accessible
+        if [ ! -f "/opt/libdragon/include/n64.mk" ]; then
+          echo "❌ n64.mk not found! Searching..."
+          find /opt/libdragon -name "n64.mk" -type f
+          echo "📂 Libdragon structure:"
+          ls -la /opt/libdragon/
+          exit 1
+        fi
         
         # Clean and build
+        echo "🧹 Cleaning previous build..."
         make clean
-        make
+        
+        echo "🔨 Starting ROM compilation..."
+        make -j$(nproc)
         
         # Verify ROM was created
         if [ -f "build/visualizer.z64" ]; then
@@ -123,6 +156,8 @@ jobs:
           ls -lh build/visualizer.z64
         else
           echo "❌ ROM build failed!"
+          echo "📁 Build directory contents:"
+          ls -la build/ || echo "Build directory not created"
           exit 1
         fi
       env:
