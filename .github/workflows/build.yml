@@ -23,8 +23,11 @@ jobs:
         cd /opt
         sudo git clone https://github.com/DragonMinded/libdragon.git
         cd libdragon
-        sudo ./build.sh
+        export N64_INST=/opt/libdragon
+        sudo -E ./build.sh
         sudo ./install.sh
+      env:
+        N64_INST: /opt/libdragon
     
     - name: Convert audio
       run: |
@@ -36,6 +39,8 @@ jobs:
         export PATH=$PATH:/opt/libdragon/bin
         make clean
         make
+      env:
+        N64_INST: /opt/libdragon
     
     - name: Upload ROM
       uses: actions/upload-artifact@v4
