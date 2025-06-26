@@ -5,6 +5,10 @@
 #include <string.h>
 #include <math.h>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 // Global audio variables
 static float cos_table[FFT_SIZE];
 static float sin_table[FFT_SIZE];
@@ -28,9 +32,9 @@ typedef struct {
 } __attribute__((packed)) wav_header_t;
 
 // Initialize audio system
-int audio_init(void) {
+int visualizer_audio_init(void) {
     // Initialize N64 audio system
-    audio_init();
+    audio_init(44100, 4);
     
     #if DEBUG_ENABLED
     debugf("Audio system initialized\n");

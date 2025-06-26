@@ -45,7 +45,6 @@
 // Configurações de Áudio (para implementação futura)
 #define AUDIO_SAMPLE_RATE       22050   // Taxa de amostragem
 #define AUDIO_BUFFER_SIZE       512     // Tamanho do buffer de áudio
-#define FFT_SIZE                256     // Tamanho da FFT
 
 // Configurações de Debug
 #define DEBUG_ENABLED           1       // Ativar debug (0/1)

@@ -13,7 +13,6 @@
 // Audio settings
 #define AUDIO_FREQ 22050
 #define SAMPLES 512
-#define FFT_SIZE 256
 
 // Colors (RGB565 format)
 #define COLOR_PURPLE    0x801F  // Roxo neon
@@ -239,6 +238,7 @@ int main(void) {
     graphics_init();
     
     // Initialize audio system
+    visualizer_audio_init();
     fft_init();
     
     // Initialize visualizer

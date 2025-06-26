@@ -25,7 +25,7 @@ typedef struct {
 } fft_bin_t;
 
 // Function prototypes
-int audio_init(void);
+int visualizer_audio_init(void);
 int audio_load_wav(const char *filename, audio_track_t *track);
 void audio_play(audio_track_t *track);
 void audio_stop(audio_track_t *track);
