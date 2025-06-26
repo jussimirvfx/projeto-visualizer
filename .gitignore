@@ -1,0 +1,26 @@
+# Build artifacts
+build/
+*.z64
+*.n64
+*.v64
+*.o
+*.elf
+
+# Debug files
+*.gdb
+*.map
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak 
