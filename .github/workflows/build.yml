@@ -13,14 +13,36 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
+    # Cache system dependencies (faster apt installs)
+    - name: Cache APT packages
+      uses: actions/cache@v4
+      with:
+        path: /var/cache/apt/archives
+        key: apt-${{ runner.os }}-${{ hashFiles('.github/workflows/build.yml') }}
+        restore-keys: |
+          apt-${{ runner.os }}-
+    
     - name: Install dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y build-essential git cmake libpng-dev python3 \
           wget curl texinfo bison flex libgmp-dev libmpfr-dev libmpc-dev
     
-    - name: Install libdragon
+    # Cache libdragon installation (HUGE time saver!)
+    - name: Cache libdragon toolchain
+      id: cache-libdragon
+      uses: actions/cache@v4
+      with:
+        path: /opt/libdragon
+        key: libdragon-v2-${{ runner.os }}-${{ hashFiles('.github/workflows/build.yml') }}
+        restore-keys: |
+          libdragon-v2-${{ runner.os }}-
+          libdragon-v1-${{ runner.os }}-
+    
+    - name: Install libdragon (only if not cached)
+      if: steps.cache-libdragon.outputs.cache-hit != 'true'
       run: |
+        echo "🚀 Installing libdragon from scratch (this will be cached!)"
         # Download and install libdragon with toolchain
         cd /opt
         sudo git clone --recursive https://github.com/DragonMinded/libdragon.git
@@ -28,7 +50,6 @@ jobs:
         
         # Set environment
         export N64_INST=/opt/libdragon
-        echo "N64_INST=/opt/libdragon" | sudo tee -a /etc/environment
         
         # Build toolchain first
         sudo -E ./tools/build-toolchain.sh /opt/libdragon
@@ -36,28 +57,80 @@ jobs:
         # Then build libdragon
         sudo -E make -j$(nproc)
         sudo make install
+        
+        echo "✅ Libdragon installed and will be cached for next builds!"
       env:
         N64_INST: /opt/libdragon
     
-    - name: Convert audio
+    - name: Setup libdragon environment (from cache or fresh install)
       run: |
-        python3 tools/wav_to_c.py intensidade-intro-mono-22050.wav intensidade_audio
+        echo "🔧 Setting up libdragon environment..."
+        export N64_INST=/opt/libdragon
+        echo "N64_INST=/opt/libdragon" | sudo tee -a /etc/environment
+        # Fix permissions after cache restore
+        sudo chown -R $USER:$USER /opt/libdragon || true
+        sudo chmod +x /opt/libdragon/bin/* || true
+        ls -la /opt/libdragon/bin/ || echo "Checking bin directory..."
     
+    # Cache converted audio data (no need to convert every time!)
+    - name: Cache audio conversion
+      id: cache-audio
+      uses: actions/cache@v4
+      with:
+        path: |
+          src/intensidade-intro-mono-22050_data.c
+          src/intensidade-intro-mono-22050_data.h
+        key: audio-conversion-${{ hashFiles('intensidade-intro-mono-22050.wav', 'tools/wav_to_c.py') }}
+    
+    - name: Convert audio (only if changed)
+      if: steps.cache-audio.outputs.cache-hit != 'true'
+      run: |
+        echo "🎵 Converting audio (will be cached for next builds!)"
+        python3 tools/wav_to_c.py intensidade-intro-mono-22050.wav intensidade_audio
+        echo "✅ Audio converted and cached!"
+    
+    - name: Audio conversion status
+      run: |
+        if [ "${{ steps.cache-audio.outputs.cache-hit }}" = "true" ]; then
+          echo "✅ Audio conversion loaded from cache - super fast!"
+        else
+          echo "🎵 Audio freshly converted and now cached"
+        fi
+        ls -la src/intensidade-intro-mono-22050_data.*
+    
+    # Build ROM (this is the only step that runs every time)
     - name: Build ROM
       run: |
+        echo "🔨 Building N64 ROM (fast step!)"
         source /etc/environment
         export N64_INST=/opt/libdragon
         export PATH=$PATH:/opt/libdragon/bin
+        
+        # Debug info
+        echo "🔍 Build environment:"
         echo "PATH=$PATH"
         echo "N64_INST=$N64_INST"
-        ls -la /opt/libdragon/bin/ || echo "bin directory not found"
+        echo "Available tools:"
+        ls -la /opt/libdragon/bin/ | head -5
+        
+        # Clean and build
         make clean
         make
+        
+        # Verify ROM was created
+        if [ -f "build/visualizer.z64" ]; then
+          echo "✅ ROM built successfully!"
+          ls -lh build/visualizer.z64
+        else
+          echo "❌ ROM build failed!"
+          exit 1
+        fi
       env:
         N64_INST: /opt/libdragon
     
     - name: Upload ROM
       uses: actions/upload-artifact@v4
       with:
-        name: n64-visualizer-rom
+        name: n64-visualizer-rom-${{ github.sha }}
         path: build/visualizer.z64
+        retention-days: 30
