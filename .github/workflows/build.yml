@@ -18,8 +18,9 @@ jobs:
       uses: actions/cache@v4
       with:
         path: /var/cache/apt/archives
-        key: apt-${{ runner.os }}-${{ hashFiles('.github/workflows/build.yml') }}
+        key: apt-stable-${{ runner.os }}-v1
         restore-keys: |
+          apt-stable-${{ runner.os }}-v1
           apt-${{ runner.os }}-
     
     - name: Install dependencies
@@ -34,10 +35,11 @@ jobs:
       uses: actions/cache@v4
       with:
         path: /opt/libdragon
-        key: libdragon-v2-${{ runner.os }}-${{ hashFiles('.github/workflows/build.yml') }}
+        key: libdragon-stable-v4-${{ runner.os }}
         restore-keys: |
+          libdragon-stable-v3-${{ runner.os }}
+          libdragon-stable-v2-${{ runner.os }}
           libdragon-v2-${{ runner.os }}-
-          libdragon-v1-${{ runner.os }}-
     
     - name: Install libdragon (only if not cached)
       if: steps.cache-libdragon.outputs.cache-hit != 'true'
@@ -54,14 +56,28 @@ jobs:
         # Build toolchain first
         sudo -E ./tools/build-toolchain.sh /opt/libdragon
         
-        # Then build libdragon
+        # Then build libdragon itself
         sudo -E make -j$(nproc)
-        sudo make install
+        
+        # Install libdragon properly (this puts headers in the right place)
+        sudo -E make install PREFIX=/opt/libdragon
         
         echo "✅ Libdragon installed and will be cached for next builds!"
       env:
         N64_INST: /opt/libdragon
     
+    - name: Show cache status
+      run: |
+        echo "📊 Cache Status Report:"
+        echo "Libdragon cache hit: ${{ steps.cache-libdragon.outputs.cache-hit }}"
+        echo "Current libdragon cache key: libdragon-stable-v4-${{ runner.os }}"
+        
+        if [ "${{ steps.cache-libdragon.outputs.cache-hit }}" = "true" ]; then
+          echo "🎉 Using cached libdragon - SUPER FAST!"
+        else
+          echo "⏳ Will install libdragon from scratch and cache it"
+        fi
+
     - name: Setup libdragon environment (from cache or fresh install)
       run: |
         echo "🔧 Setting up libdragon environment..."
@@ -126,7 +142,11 @@ jobs:
         
         echo "🔍 Checking critical files:"
         echo "n64.mk exists: $(test -f /opt/libdragon/include/n64.mk && echo 'YES' || echo 'NO')"
+        echo "libdragon.h exists: $(test -f /opt/libdragon/include/libdragon.h && echo 'YES' || echo 'NO')"
         echo "Makefile exists: $(test -f Makefile && echo 'YES' || echo 'NO')"
+        
+        echo "📚 Libdragon headers check:"
+        ls -la /opt/libdragon/include/ | head -10 || echo "Include directory empty/missing"
         
         echo "📁 Build directory structure:"
         ls -la src/ || echo "src directory not found"
