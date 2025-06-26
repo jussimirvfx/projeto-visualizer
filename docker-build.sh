@@ -31,10 +31,10 @@ fi
 echo "✅ Docker está rodando"
 
 # Converter áudio se necessário
-AUDIO_DATA_FILE="src/intensidade-intro-mono-44100_data.c"
+AUDIO_DATA_FILE="src/intensidade-intro-mono-22050_data.c"
 if [ ! -f "$AUDIO_DATA_FILE" ]; then
     echo "🎵 Convertendo áudio..."
-    python3 tools/wav_to_c.py intensidade-intro-mono-44100.wav intensidade_audio
+    python3 tools/wav_to_c.py intensidade-intro-mono-22050.wav intensidade_audio
 fi
 
 echo "✅ Áudio convertido"

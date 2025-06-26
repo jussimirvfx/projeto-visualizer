@@ -20,7 +20,7 @@ echo "✅ Git configurado"
 
 # Converter áudio localmente
 echo "🎵 Convertendo áudio..."
-python3 tools/wav_to_c.py intensidade-intro-mono-44100.wav intensidade_audio
+python3 tools/wav_to_c.py intensidade-intro-mono-22050.wav intensidade_audio
 
 # Verificar se é um repositório git
 if [ ! -d ".git" ]; then

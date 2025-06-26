@@ -4,7 +4,7 @@
 #include <string.h>
 #include "config.h"
 #include "audio.h"
-#include "intensidade-intro-mono-44100_data.h"
+#include "intensidade-intro-mono-22050_data.h"
 
 // Screen dimensions
 #define SCREEN_WIDTH 320

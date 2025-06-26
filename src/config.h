@@ -43,7 +43,7 @@
 #define VSYNC_ENABLED           1       // Ativar VSync (0/1)
 
 // Configurações de Áudio (para implementação futura)
-#define AUDIO_SAMPLE_RATE       22050   // Taxa de amostragem
+#define AUDIO_SAMPLE_RATE       22050   // Taxa de amostragem (real audio)
 #define AUDIO_BUFFER_SIZE       512     // Tamanho do buffer de áudio
 
 // Configurações de Debug
