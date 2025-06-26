@@ -1,0 +1,44 @@
+name: Build N64 Visualizer
+
+on: 
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential git cmake libpng-dev python3
+    
+    - name: Install libdragon
+      run: |
+        cd /opt
+        sudo git clone https://github.com/DragonMinded/libdragon.git
+        cd libdragon
+        sudo ./build.sh
+        sudo ./install.sh
+    
+    - name: Convert audio
+      run: |
+        python3 tools/wav_to_c.py intensidade-intro-mono-44100.wav intensidade_audio
+    
+    - name: Build ROM
+      run: |
+        export N64_INST=/opt/libdragon
+        export PATH=$PATH:/opt/libdragon/bin
+        make clean
+        make
+    
+    - name: Upload ROM
+      uses: actions/upload-artifact@v3
+      with:
+        name: n64-visualizer-rom
+        path: build/visualizer.z64
