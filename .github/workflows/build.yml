@@ -16,16 +16,26 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential git cmake libpng-dev python3
+        sudo apt-get install -y build-essential git cmake libpng-dev python3 \
+          wget curl texinfo bison flex libgmp-dev libmpfr-dev libmpc-dev
     
     - name: Install libdragon
       run: |
+        # Download and install libdragon with toolchain
         cd /opt
-        sudo git clone https://github.com/DragonMinded/libdragon.git
+        sudo git clone --recursive https://github.com/DragonMinded/libdragon.git
         cd libdragon
+        
+        # Set environment
         export N64_INST=/opt/libdragon
-        sudo -E ./build.sh
-        sudo ./install.sh
+        echo "N64_INST=/opt/libdragon" | sudo tee -a /etc/environment
+        
+        # Build toolchain first
+        sudo -E ./tools/build-toolchain.sh /opt/libdragon
+        
+        # Then build libdragon
+        sudo -E make -j$(nproc)
+        sudo make install
       env:
         N64_INST: /opt/libdragon
     
@@ -35,8 +45,12 @@ jobs:
     
     - name: Build ROM
       run: |
+        source /etc/environment
         export N64_INST=/opt/libdragon
         export PATH=$PATH:/opt/libdragon/bin
+        echo "PATH=$PATH"
+        echo "N64_INST=$N64_INST"
+        ls -la /opt/libdragon/bin/ || echo "bin directory not found"
         make clean
         make
       env:
